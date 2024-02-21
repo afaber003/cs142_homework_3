@@ -11,7 +11,8 @@ struct Node {
     int parentIndex = -1;
     int iAmRoot = numeric_limits<short>::min();
     int bestWeightWithMe = numeric_limits<short>::min(); // include me
-    int bestWeightBelow = numeric_limits<short>::min(); // exclude me
+    int absoluteBestWeightBelow = numeric_limits<short>::min(); // exclude me
+    int bestChildIncludedWeightBelow = numeric_limits<short>::min();
 
     bool hasChildren() const {
         return !this->childrenIndices.empty();
@@ -25,7 +26,7 @@ struct Node {
                 childBests.push_back(masterList[childIndex].bestWeightWithMe);
             }
         }
-        if (childBests.size() >= 2) {
+        if (childBests.size() > 2) {
             sort(childBests.begin(), childBests.end());
             childBests = {childBests[childBests.size() - 1], childBests[childBests.size() - 2]};
         }
@@ -40,36 +41,27 @@ void doIt(vector<Node>& masterList, int index) {
 
     // make sure the children have the chance to update me
     if (masterList[index].hasChildren()) {
-        for (int childIndex : masterList[index].childrenIndices) {
-            doIt(masterList, childIndex);
+        for (int i : masterList[index].childrenIndices) {
+            doIt(masterList, i);
         }
-        if (masterList[index].bestWeightBelow <= 0) {
-            masterList[index].bestWeightWithMe = masterList[index].weight;
-            masterList[index].iAmRoot = masterList[index].weight;
-        } else {
-            masterList[index].bestWeightWithMe = masterList[index].bestWeightBelow + masterList[index].weight;
-            masterList[index].iAmRoot = masterList[index].getBestChildrenCombination(masterList);
-        }
+        masterList[index].bestWeightWithMe = max(masterList[index].weight, masterList[index].weight + masterList[index].bestChildIncludedWeightBelow);
+        masterList[index].iAmRoot = masterList[index].getBestChildrenCombination(masterList);
     } else {
-        masterList[index].bestWeightBelow = 0;
         masterList[index].bestWeightWithMe = masterList[index].weight;
         masterList[index].iAmRoot = masterList[index].weight;
+        masterList[index].bestChildIncludedWeightBelow = 0;
+        masterList[index].absoluteBestWeightBelow = 0;
     }
 
     if (index == 0) {
         return;
     }
 
-    // update my parent
-    if (masterList[index].bestWeightBelow <= 0) {
-        masterList[masterList[index].parentIndex].bestWeightBelow = max(masterList[index].weight, masterList[masterList[index].parentIndex].bestWeightBelow);
-    } else {
-        if (masterList[index].weight >= 0) {
-            masterList[masterList[index].parentIndex].bestWeightBelow = max(masterList[masterList[index].parentIndex].bestWeightBelow, masterList[index].bestWeightWithMe);
-        } else {
-            masterList[masterList[index].parentIndex].bestWeightBelow = max(masterList[index].bestWeightBelow, masterList[masterList[index].parentIndex].bestWeightBelow);
-        }
-    }
+    // update parent
+    masterList[masterList[index].parentIndex].absoluteBestWeightBelow =
+            max(max(max(max(masterList[index].weight, masterList[index].absoluteBestWeightBelow), masterList[index].bestWeightWithMe), masterList[masterList[index].parentIndex].absoluteBestWeightBelow), 0);
+    masterList[masterList[index].parentIndex].bestChildIncludedWeightBelow =
+            max(max(max(masterList[index].weight, masterList[masterList[index].parentIndex].bestChildIncludedWeightBelow), 0), masterList[index].bestWeightWithMe);
 }
 
 int main() {
@@ -99,6 +91,6 @@ int main() {
         }
     }
 
-    printf("%d\n", max(max(masterList[0].bestWeightBelow, masterList[0].bestWeightWithMe), best));
+    printf("%d\n", max(max(masterList[0].absoluteBestWeightBelow, masterList[0].bestWeightWithMe), best));
     return 0;
 }
