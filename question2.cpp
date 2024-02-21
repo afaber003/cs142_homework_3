@@ -53,11 +53,12 @@ void doIt(vector<Node>& masterList, int index) {
         masterList[index].absoluteBestWeightBelow = 0;
     }
 
+    // no need to update parent if im the head
     if (index == 0) {
         return;
     }
 
-    // update parent
+    // update parent with my new values
     masterList[masterList[index].parentIndex].absoluteBestWeightBelow =
             max(max(max(max(masterList[index].weight, masterList[index].absoluteBestWeightBelow), masterList[index].bestWeightWithMe), masterList[masterList[index].parentIndex].absoluteBestWeightBelow), 0);
     masterList[masterList[index].parentIndex].bestChildIncludedWeightBelow =
