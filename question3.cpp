@@ -14,6 +14,10 @@ struct Item {
     int value;
     int itemsLeft;
     int weight;
+
+    bool operator < (const Item& str) const {
+        return (weight < str.weight);
+    }
 };
 
 int bestValueForWeight(vector<Item>& itemList, int weightRemaining, int totalValueLeft) {
@@ -28,10 +32,14 @@ int bestValueForWeight(vector<Item>& itemList, int weightRemaining, int totalVal
 
     int best = 0, currentItemCount;
     for (Item& item : itemList) {
-        if (item.weight <= weightRemaining && item.itemsLeft > 0) {
-            currentItemCount = item.itemsLeft--;
-            best = max(best, item.value + (weightRemaining - item.weight >= minWeight ? bestValueForWeight(itemList, weightRemaining - item.weight, totalValueLeft - item.value) : 0));
-            item.itemsLeft = currentItemCount;
+        if (item.weight <= weightRemaining) {
+            if (item.itemsLeft > 0) {
+                currentItemCount = item.itemsLeft--;
+                best = max(best, item.value + (weightRemaining - item.weight >= minWeight ? bestValueForWeight(itemList, weightRemaining - item.weight, totalValueLeft - item.value) : 0));
+                item.itemsLeft = currentItemCount;
+            }
+        } else {
+            break;
         }
     }
 
@@ -58,9 +66,10 @@ int main() {
     }
 
     if (totalWeight <= maxWeight) {
-        printf("%d", totalValue);
+        printf("%d\n", totalValue);
     } else {
-        printf("%d", bestValueForWeight(itemList, maxWeight, totalValue));
+        sort(itemList.begin(), itemList.end());
+        printf("%d\n", bestValueForWeight(itemList, maxWeight, totalValue));
     }
 
     return 0;
