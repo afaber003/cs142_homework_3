@@ -6,32 +6,7 @@ using namespace std;
 struct Game {
     int xCount = 0, oCount = 0;
     bool xTurn;
-    char gamestate[3][3] = {};
-
-    bool canWinOnNextTurn() {
-        char characterToInsert = xTurn ? 'X' : 'O';
-        vector<int> moves = availableMoves();
-        for (int move : moves) {
-            gamestate[move / 3][move % 3] = characterToInsert;
-            if (checkWinCondition() || checkTwoWaysToWin(characterToInsert)) return true;
-            gamestate[move / 3][move % 3] = '#';
-        }
-        return false;
-    }
-
-    bool checkTwoWaysToWin(char override = ' ') {
-        char characterToInsert = override;
-        if (characterToInsert == ' ')
-            characterToInsert = !xTurn ? 'X' : 'O';
-        vector<int> moves = availableMoves();
-        int wins = 0;
-        for (int move : moves) {
-            gamestate[move / 3][move % 3] = characterToInsert;
-            if (checkWinCondition()) wins++;
-            gamestate[move / 3][move % 3] = '#';
-        }
-        return wins > 1;
-    }
+    char gamestate[3][3];
 
     vector<int> availableMoves() {
         vector<int> moves;
@@ -41,15 +16,6 @@ struct Game {
             }
         }
         return moves;
-    }
-
-    bool isBoardEmpty() {
-        for (int i = 0; i < 9; i++) {
-            if (gamestate[i / 3][i % 3] != '#') {
-                return false;
-            }
-        }
-        return true;
     }
 
     bool isBoardFull() {
@@ -62,37 +28,12 @@ struct Game {
     }
 
     int isXOptimal() {
-        if (isBoardEmpty()) return 0;
-        if (checkWinCondition()) {
-            if (xTurn) return -1;
-            return 1;
+        int winCond = checkWinCondition();
+        if (winCond != 0) {
+            if (winCond == 1) { return 1; }
+            else return -1;
         }
-        if (checkTwoWaysToWin()) {
-            return !xTurn ? 1 : -1;
-        }
-        if (isBoardFull()) return 0;
-        if (canWinOnNextTurn()) return xTurn ? 1 : -1;
-        if (xCount == 1) {
-            if (gamestate[0][0] == 'X' || gamestate[2][2] == 'X' || gamestate[0][2] == 'X' || gamestate[2][0] == 'X') {
-                if (oCount == 0) {
-                    return 0;
-                } else {
-                    if (gamestate[1][1] == 'O') {
-                        return 0;
-                    } else {
-                        return 1;
-                    }
-                }
-            } else {
-                if (gamestate[0][0] == 'O' || gamestate[2][2] == 'O' || gamestate[0][2] == 'O' || gamestate[2][0] == 'O') {
-                    if (gamestate[1][1] == 'X') {
-                        return 0;
-                    } else {
-                        return -1;
-                    }
-                }
-            }
-        }
+        if (isBoardFull()) { return 0; }
         return doesXEventuallyWin();
     }
 
@@ -102,32 +43,23 @@ struct Game {
         vector<int> outcomes;
         for (int movePosition : possibleMoves) {
             char characterToInsert = xTurn ? 'X' : 'O';
-            if (xTurn) {
-                xCount++;
-            } else {
-                oCount++;
-            }
             xTurn = !xTurn;
             gamestate[movePosition / 3][movePosition % 3] = characterToInsert;
             outcomes.push_back(isXOptimal());
-            *this = copy;
-            gamestate[movePosition / 3][movePosition % 3] = characterToInsert == 'X' ? 'Y' : '1';
-            printf("%c%c%c\n", gamestate[0][0], gamestate[1][0], gamestate[2][0]);
-            printf("%c%c%c\n", gamestate[0][1], gamestate[1][1], gamestate[2][1]);
-            printf("%c%c%c\n", gamestate[0][2], gamestate[1][2], gamestate[2][2]);
-            printf("%d\n\n", outcomes[outcomes.size() - 1]);
-            *this = copy;
+            *this = copy; // restore snapshot
         }
         if (xTurn) {
             if (any_of(outcomes.begin(), outcomes.end(), [](int outcome) {return outcome == 1;})) {
                 return 1;
-            } else if (all_of(outcomes.begin(), outcomes.end(), [](int outcome) {return outcome == -1;})) {
+            }
+            if (all_of(outcomes.begin(), outcomes.end(), [](int outcome) {return outcome == -1;})) {
                 return -1;
             }
         } else {
             if (any_of(outcomes.begin(), outcomes.end(), [](int outcome) {return outcome == -1;})) {
                 return -1;
-            } else if (all_of(outcomes.begin(), outcomes.end(), [](int outcome) {return outcome == 1;})) {
+            }
+            if (all_of(outcomes.begin(), outcomes.end(), [](int outcome) {return outcome == 1;})) {
                 return 1;
             }
         }
@@ -144,20 +76,31 @@ struct Game {
         }
     }
 
-    bool checkWinCondition() {
+    int checkWinCondition() {
         if (
-                gamestate[0][0] == gamestate[0][1] && gamestate[0][0] == gamestate[0][2] && gamestate[0][0] != '#' ||
-                        gamestate[1][0] == gamestate[1][1] && gamestate[1][0] == gamestate[1][2] && gamestate[1][0] != '#'  ||
-                        gamestate[2][0] == gamestate[2][1] && gamestate[2][0] == gamestate[2][2] && gamestate[2][0] != '#'  ||
-                gamestate[0][0] == gamestate[1][0] && gamestate[0][0] == gamestate[2][0] && gamestate[0][0] != '#'  ||
-                        gamestate[0][1] == gamestate[1][1] && gamestate[0][1] == gamestate[2][1] && gamestate[0][1] != '#'  ||
-                        gamestate[0][2] == gamestate[1][2] && gamestate[0][2] == gamestate[2][2] && gamestate[0][2] != '#'  ||
-                gamestate[0][0] == gamestate[1][1] && gamestate[0][0] == gamestate[2][2] && gamestate[0][0] != '#'  ||
-                        gamestate[0][2] == gamestate[1][1] && gamestate[0][2] == gamestate[2][0] && gamestate[0][2] != '#'
+                gamestate[0][0] == gamestate[0][1] && gamestate[0][0] == gamestate[0][2] && gamestate[0][0] == 'X' ||
+                gamestate[1][0] == gamestate[1][1] && gamestate[1][0] == gamestate[1][2] && gamestate[1][0] == 'X'  ||
+                gamestate[2][0] == gamestate[2][1] && gamestate[2][0] == gamestate[2][2] && gamestate[2][0] == 'X'  ||
+                gamestate[0][0] == gamestate[1][0] && gamestate[0][0] == gamestate[2][0] && gamestate[0][0] == 'X'  ||
+                gamestate[0][1] == gamestate[1][1] && gamestate[0][1] == gamestate[2][1] && gamestate[0][1] == 'X'  ||
+                gamestate[0][2] == gamestate[1][2] && gamestate[0][2] == gamestate[2][2] && gamestate[0][2] == 'X'  ||
+                gamestate[0][0] == gamestate[1][1] && gamestate[0][0] == gamestate[2][2] && gamestate[0][0] == 'X'  ||
+                gamestate[0][2] == gamestate[1][1] && gamestate[0][2] == gamestate[2][0] && gamestate[0][2] == 'X'
                 ) {
-            return true;
+            return 1;
+        } else if (
+                gamestate[0][0] == gamestate[0][1] && gamestate[0][0] == gamestate[0][2] && gamestate[0][0] == 'O' ||
+                gamestate[1][0] == gamestate[1][1] && gamestate[1][0] == gamestate[1][2] && gamestate[1][0] == 'O'  ||
+                gamestate[2][0] == gamestate[2][1] && gamestate[2][0] == gamestate[2][2] && gamestate[2][0] == 'O'  ||
+                gamestate[0][0] == gamestate[1][0] && gamestate[0][0] == gamestate[2][0] && gamestate[0][0] == 'O'  ||
+                gamestate[0][1] == gamestate[1][1] && gamestate[0][1] == gamestate[2][1] && gamestate[0][1] == 'O'  ||
+                gamestate[0][2] == gamestate[1][2] && gamestate[0][2] == gamestate[2][2] && gamestate[0][2] == 'O'  ||
+                gamestate[0][0] == gamestate[1][1] && gamestate[0][0] == gamestate[2][2] && gamestate[0][0] == 'O'  ||
+                gamestate[0][2] == gamestate[1][1] && gamestate[0][2] == gamestate[2][0] && gamestate[0][2] == 'O'
+                ) {
+            return -1;
         }
-        return false;
+        return 0;
     }
 };
 
